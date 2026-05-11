@@ -350,20 +350,25 @@
     .plot-area { padding: 12px 12px; gap: 6px; height: auto; overflow: visible; }
     .plot-title { font-size: 0.82rem; }
 
-    /* Canvas: fixed heights on mobile so they're readable */
-    canvas { min-height: 220px; flex: none; height: 220px; }
+    /* Canvas: use aspect ratio on mobile so height is always defined */
+    canvas {
+      flex: none !important;
+      width: 100% !important;
+      height: auto !important;
+      aspect-ratio: 2 / 1;
+      min-height: 0 !important;
+    }
 
     /* 2×2 grid → single column on mobile */
     .canvas-grid {
       grid-template-columns: 1fr;
-      grid-template-rows: repeat(4, 220px);
+      grid-template-rows: auto;
       height: auto; flex: none;
     }
-    .canvas-cell { min-height: 0; }
+    .canvas-cell { min-height: 0; height: auto; }
 
     /* Tab 3 two-canvas layout */
-    #tab2 .plot-area > div { flex: none; }
-    #tab2 .canvas-cell { height: 220px; }
+    #tab2 .canvas-cell { height: auto; }
 
     /* Sliders: bigger touch target */
     input[type=range] { height: 6px; }
@@ -919,12 +924,18 @@ function drawTab1() {
   L.innerHTML=h;
 }
 
+function resizeCanvas(c) {
+  const w = c.offsetWidth, h = c.offsetHeight;
+  if(w < 2 || h < 2) return false;
+  c.width  = w * devicePixelRatio;
+  c.height = h * devicePixelRatio;
+  c.getContext('2d').scale(devicePixelRatio, devicePixelRatio);
+  return true;
+}
+
 function resizeTab1() {
-  const c=document.getElementById('plot1'),r=c.getBoundingClientRect();
-  if(r.width<2||r.height<2)return;
-  c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;
-  c.getContext('2d').scale(devicePixelRatio,devicePixelRatio);
-  drawTab1();
+  const c = document.getElementById('plot1');
+  if(resizeCanvas(c)) drawTab1();
 }
 function setN(v){n1=Math.min(100,Math.max(0,v));document.getElementById('nInput').value=n1;updateInfo1();drawTab1();}
 function commitN(){let v=parseInt(document.getElementById('nInput').value,10);const inp=document.getElementById('nInput');if(isNaN(v)||v<0){inp.classList.add('error');return;}v=Math.min(v,100);inp.value=v;inp.classList.remove('error');n1=v;updateInfo1();drawTab1();}
@@ -1112,13 +1123,11 @@ function drawTab2() {
 }
 
 function resizeTab2() {
+  let any = false;
   ['cvs-xwf','cvs-pwf','cvs-xpd','cvs-ppd'].forEach(id=>{
-    const c=document.getElementById(id),r=c.getBoundingClientRect();
-    if(r.width<2||r.height<2)return;
-    c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;
-    c.getContext('2d').scale(devicePixelRatio,devicePixelRatio);
+    if(resizeCanvas(document.getElementById(id))) any=true;
   });
-  drawTab2();
+  if(any) drawTab2();
 }
 
 let t2_showClassical = false;
@@ -1404,13 +1413,11 @@ document.getElementById('t3-showXexp').addEventListener('change',function(){t3_s
 document.getElementById('t3-showTurning').addEventListener('change',function(){t3_showTurning=this.checked;t3_drawFrame();});
 
 function resizeTab3() {
+  let any = false;
   ['cvs-t3-wf','cvs-t3-pd'].forEach(id=>{
-    const c=document.getElementById(id), r=c.getBoundingClientRect();
-    if(r.width<2||r.height<2) return;
-    c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;
-    c.getContext('2d').scale(devicePixelRatio,devicePixelRatio);
+    if(resizeCanvas(document.getElementById(id))) any=true;
   });
-  t3_drawFrame();
+  if(any) t3_drawFrame();
 }
 
 
@@ -1467,8 +1474,15 @@ const ro3=new ResizeObserver(()=>{if(panels[2].classList.contains('active'))resi
 ['cvs-t3-wf','cvs-t3-pd'].forEach(id=>ro3.observe(document.getElementById(id)));
 
 window.addEventListener('load',()=>{
-  updateInfo1(); resizeTab1();
+  updateInfo1();
   setState('n0');
+  // Defer first draw until after the browser has done its first layout pass,
+  // so offsetWidth/offsetHeight return real values on all devices including mobile.
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      resizeTab1();
+    });
+  });
 });
 </script>
 </body>
