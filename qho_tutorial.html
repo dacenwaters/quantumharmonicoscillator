@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Harmonic Oscillator — Interactive Tutorial</title>
+<style>
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --border:    #21262d;
+    --accent:    #58a6ff;
+    --accent2:   #f78166;
+    --accent3:   #3fb950;
+    --accent4:   #d2a8ff;
+    --text:      #e6edf3;
+    --muted:     #8b949e;
+    --quantum:   #58a6ff;
+    --classical: #f78166;
+    --turning:   #3fb950;
+    --potential: #d2a8ff;
+    --re-color:  #58a6ff;
+    --im-color:  #f78166;
+    --pd-color:  #3fb950;
+    --serif: Georgia, 'Times New Roman', serif;
+    --mono:  'Courier New', Courier, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 36px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+  }
+  header h1 { font-size: 1.35rem; font-weight: 400; color: var(--text); }
+  header h1 span { color: var(--accent); font-weight: 700; }
+  header .subtitle {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 36px;
+    display: flex;
+  }
+  .tab-btn {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 11px 18px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn.disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: flex; }
+
+  /* ── Shared layout ── */
+  .content { height: calc(100vh - 94px); }
+
+  .sidebar {
+    width: 272px;
+    min-width: 272px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    overflow-y: auto;
+    height: 100%;
+  }
+  .sidebar-section h3 {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Slider controls ── */
+  .control { margin-bottom: 16px; }
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+  .control label .val { font-family: var(--mono); font-size: 0.75rem; color: var(--accent); }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    transition: transform 0.15s;
+  }
+  input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.3); }
+
+  /* ── n input (tab 1) ── */
+  .n-input-row { display: flex; align-items: center; gap: 9px; margin-top: 3px; }
+  .n-input-row input[type=number] {
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    width: 82px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    border-radius: 5px;
+    padding: 5px 9px;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+  .n-input-row input[type=number]::-webkit-inner-spin-button,
+  .n-input-row input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .n-input-row input[type=number]:focus { border-color: var(--accent); }
+  .n-input-row input[type=number].error { border-color: var(--accent2); color: var(--accent2); }
+  .n-step-btns { display: flex; flex-direction: column; gap: 3px; }
+  .n-step-btn {
+    font-family: var(--mono); font-size: 0.65rem;
+    width: 24px; height: 20px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 3px; cursor: pointer; transition: all 0.12s; line-height: 1;
+  }
+  .n-step-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .n-quick { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .n-quick-btn {
+    font-family: var(--mono); font-size: 0.65rem;
+    padding: 3px 7px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 3px; cursor: pointer; transition: all 0.12s;
+  }
+  .n-quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── State selector (tab 2) ── */
+  .state-btns { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; }
+  .state-btn {
+    font-family: var(--mono); font-size: 0.72rem;
+    padding: 8px 12px; text-align: left;
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 5px; cursor: pointer; transition: all 0.15s; line-height: 1.4;
+  }
+  .state-btn:hover { border-color: var(--accent); color: var(--text); }
+  .state-btn.active {
+    background: color-mix(in srgb, var(--accent) 13%, var(--bg));
+    border-color: var(--accent); color: var(--accent);
+  }
+  .state-btn .state-label { font-size: 0.62rem; color: var(--muted); display: block; margin-top: 2px; }
+  .state-btn.active .state-label { color: color-mix(in srgb, var(--accent) 55%, var(--muted)); }
+
+  /* ── Toggle switches ── */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; font-size: 0.88rem;
+  }
+  .toggle-row .label-text { display: flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .toggle { position: relative; width: 36px; height: 19px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider-track {
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 20px; transition: background 0.2s;
+  }
+  .slider-track::before {
+    content: ''; position: absolute;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--muted); top: 3px; left: 3px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle input:checked + .slider-track { background: color-mix(in srgb, var(--color) 30%, var(--border)); }
+  .toggle input:checked + .slider-track::before { transform: translateX(17px); background: var(--color); }
+
+  /* ── Info box ── */
+  .info-box {
+    background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+    border-radius: 6px; padding: 11px 13px;
+    font-size: 0.84rem; line-height: 1.5; color: var(--text);
+  }
+  .info-box .eq {
+    font-family: var(--mono); font-size: 0.74rem; color: var(--accent4);
+    margin-top: 5px; display: block;
+  }
+  .info-box strong { color: var(--accent); }
+
+  /* ── Uncertainty panel ── */
+  .uncertainty-box {
+    background: color-mix(in srgb, var(--accent4) 6%, var(--bg));
+    border: 1px solid color-mix(in srgb, var(--accent4) 22%, var(--border));
+    border-radius: 6px; padding: 13px 14px;
+    font-size: 0.83rem; line-height: 1.85;
+  }
+  .ub-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .ub-label { color: var(--muted); font-family: var(--mono); font-size: 0.69rem; }
+  .ub-val   { color: var(--text);  font-family: var(--mono); font-size: 0.76rem; }
+  .ub-val.hi { color: var(--accent4); font-size: 0.84rem; font-weight: bold; }
+  .ub-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+  .ub-check { font-size: 0.75rem; color: var(--muted); margin-top: 5px; font-family: var(--mono); }
+
+  /* ── Plot area ── */
+  .plot-area {
+    flex: 1; padding: 18px 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    overflow: hidden; height: 100%;
+  }
+  .plot-title {
+    font-size: 0.92rem; font-weight: 400;
+    color: var(--muted); letter-spacing: 0.02em; flex-shrink: 0;
+  }
+  .plot-title span { color: var(--text); }
+
+  /* ── 2×2 grid ── */
+  .canvas-grid {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+  }
+  .canvas-cell { display: flex; flex-direction: column; gap: 3px; min-height: 0; }
+  .canvas-cell-title {
+    font-family: var(--mono); font-size: 0.6rem;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--muted); flex-shrink: 0; padding-left: 2px;
+  }
+  .canvas-cell-title .hi { color: var(--accent4); margin-left: 5px; }
+
+  canvas {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: block; width: 100%; flex: 1; min-height: 0;
+  }
+
+  /* legend */
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; flex-shrink: 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--muted); }
+  .legend-line { width: 20px; height: 2px; border-radius: 1px; }
+  .legend-line.dashed { height: 0; border-top: 2px dashed; background: none !important; }
+
+  /* ── Eq bar ── */
+  .eq-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 7px 36px;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    color: var(--muted);
+    display: flex; gap: 24px; flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .eq-bar span { color: var(--text); }
+  .eq-bar .key { color: var(--muted); margin-right: 3px; }
+  /* ── Tab 3 playback buttons ── */
+  .t3-ctrl-btn {
+    font-family: var(--mono); font-size: 0.72rem;
+    padding: 7px 14px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 5px; cursor: pointer; transition: all 0.15s;
+  }
+  .t3-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .t3-ctrl-btn.t3-primary { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+  .t3-ctrl-btn.t3-primary:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Quantum <span>Harmonic Oscillator</span></h1>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active"   onclick="switchTab(0)">01 · Classical Limit</button>
+  <button class="tab-btn"         onclick="switchTab(1)">02 · Wave Functions</button>
+  <button class="tab-btn"         onclick="switchTab(2)">03 · Time Evolution</button>
+</div>
+
+<!-- ═══════════════════════ TAB 1 ═══════════════════════ -->
+<div class="content tab-panel active" id="tab0">
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <h3>Quantum Number</h3>
+      <div class="n-input-row">
+        <input type="number" id="nInput" value="0" min="0" step="1">
+        <div class="n-step-btns">
+          <button class="n-step-btn" id="nUp">▲</button>
+          <button class="n-step-btn" id="nDown">▼</button>
+        </div>
+        <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);line-height:1.4;">
+          E =&nbsp;<span id="eVal" style="color:var(--accent4);">0.5 ℏω</span>
+        </div>
+      </div>
+      <div class="n-quick">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);width:100%;margin-bottom:1px;">Quick select:</span>
+        <button class="n-quick-btn" onclick="setN(0)">0</button>
+        <button class="n-quick-btn" onclick="setN(1)">1</button>
+        <button class="n-quick-btn" onclick="setN(5)">5</button>
+        <button class="n-quick-btn" onclick="setN(10)">10</button>
+        <button class="n-quick-btn" onclick="setN(20)">20</button>
+        <button class="n-quick-btn" onclick="setN(50)">50</button>
+        <button class="n-quick-btn" onclick="setN(100)">100</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Potential Strength</h3>
+      <div class="control">
+        <label><span>Angular frequency ω</span><span class="val" id="omegaVal">1.00</span></label>
+        <input type="range" id="omegaSlider" min="0.3" max="3.0" step="0.05" value="1.0">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Overlays</h3>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--potential)"></span>Potential V(x)</div>
+        <label class="toggle" style="--color:var(--potential)"><input type="checkbox" id="toggleV" checked><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--classical)"></span>Classical P(x)</div>
+        <label class="toggle" style="--color:var(--classical)"><input type="checkbox" id="toggleClassical"><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--turning)"></span>Turning points</div>
+        <label class="toggle" style="--color:var(--turning)"><input type="checkbox" id="toggleTurning"><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--accent)"></span>Energy level Eₙ</div>
+        <label class="toggle" style="--color:var(--accent)"><input type="checkbox" id="toggleEnergy" checked><span class="slider-track"></span></label>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>About this State</h3>
+      <div class="info-box" id="infoBox">Select n above to explore |ψₙ(x)|².</div>
+    </div>
+
+  </div><!-- /sidebar tab1 -->
+
+  <div class="plot-area">
+    <div class="plot-title">Probability density &nbsp;<span>|ψₙ(x)|²</span></div>
+    <canvas id="plot1"></canvas>
+    <div class="legend" id="legend1">
+      <div class="legend-item"><div class="legend-line" style="background:var(--quantum)"></div><span style="color:var(--quantum)">|ψₙ(x)|²</span></div>
+    </div>
+  </div>
+</div><!-- /tab0 -->
+
+
+<!-- ═══════════════════════ TAB 2 ═══════════════════════ -->
+<div class="content tab-panel" id="tab1">
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <h3>Select State</h3>
+      <div class="state-btns">
+        <button class="state-btn active" onclick="setState('n0')" id="sbtn-n0">
+          n = 0 &nbsp;·&nbsp; E = 1/2 ℏω
+          <span class="state-label">ground state</span>
+        </button>
+        <button class="state-btn" onclick="setState('n1')" id="sbtn-n1">
+          n = 1 &nbsp;·&nbsp; E = 3/2 ℏω
+          <span class="state-label">first excited state</span>
+        </button>
+        <button class="state-btn" onclick="setState('n2')" id="sbtn-n2">
+          n = 2 &nbsp;·&nbsp; E = 5/2 ℏω
+          <span class="state-label">second excited state</span>
+        </button>
+        <button class="state-btn" onclick="setState('n3')" id="sbtn-n3">
+          n = 3 &nbsp;·&nbsp; E = 7/2 ℏω
+          <span class="state-label">third excited state</span>
+        </button>
+        <button class="state-btn" onclick="setState('sup')" id="sbtn-sup">
+          (1/√2)(ψ₂ + ψ₃)
+          <span class="state-label">equal superposition, t = 0</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Uncertainty Principle</h3>
+      <div class="uncertainty-box">
+        <div class="ub-row"><span class="ub-label">⟨ x ⟩</span><span class="ub-val" id="ub-xmean">—</span></div>
+        <div class="ub-row"><span class="ub-label">⟨ x² ⟩</span><span class="ub-val" id="ub-x2">—</span></div>
+        <div class="ub-row"><span class="ub-label">Δx = √(⟨x²⟩−⟨x⟩²)</span><span class="ub-val" id="ub-dx">—</span></div>
+        <hr class="ub-divider">
+        <div class="ub-row"><span class="ub-label">⟨ p ⟩</span><span class="ub-val" id="ub-pmean">—</span></div>
+        <div class="ub-row"><span class="ub-label">⟨ p² ⟩</span><span class="ub-val" id="ub-p2">—</span></div>
+        <div class="ub-row"><span class="ub-label">Δp = √(⟨p²⟩−⟨p⟩²)</span><span class="ub-val" id="ub-dp">—</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Display Options</h3>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--re-color)"></span>Re[ψ], Re[φ]</div>
+        <label class="toggle" style="--color:var(--re-color)"><input type="checkbox" id="t2-showRe" checked><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--im-color)"></span>Im[ψ], Im[φ]</div>
+        <label class="toggle" style="--color:var(--im-color)"><input type="checkbox" id="t2-showIm" checked><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--accent4)"></span>Show ⟨·⟩ and Δ</div>
+        <label class="toggle" style="--color:var(--accent4)"><input type="checkbox" id="t2-showStats"><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--turning)"></span>Classical limits</div>
+        <label class="toggle" style="--color:var(--turning)"><input type="checkbox" id="t2-showClassical"><span class="slider-track"></span></label>
+      </div>
+    </div>
+
+  </div><!-- /sidebar tab2 -->
+
+  <div class="plot-area">
+    <div class="plot-title">State: <span id="t2-state-label">n = 1</span></div>
+    <div class="canvas-grid">
+
+      <div class="canvas-cell">
+        <div class="canvas-cell-title">
+          Position space &nbsp; ψ(x)
+          <span class="hi" id="lbl-xwf"></span>
+        </div>
+        <canvas id="cvs-xwf"></canvas>
+      </div>
+
+      <div class="canvas-cell">
+        <div class="canvas-cell-title">
+          Momentum space &nbsp; φ(p)
+          <span class="hi" id="lbl-pwf"></span>
+        </div>
+        <canvas id="cvs-pwf"></canvas>
+      </div>
+
+      <div class="canvas-cell">
+        <div class="canvas-cell-title">
+          Position probability density &nbsp; |ψ(x)|²
+          <span class="hi" id="lbl-xpd"></span>
+        </div>
+        <canvas id="cvs-xpd"></canvas>
+      </div>
+
+      <div class="canvas-cell">
+        <div class="canvas-cell-title">
+          Momentum probability density &nbsp; |φ(p)|²
+          <span class="hi" id="lbl-ppd"></span>
+        </div>
+        <canvas id="cvs-ppd"></canvas>
+      </div>
+
+    </div><!-- /canvas-grid -->
+  </div><!-- /plot-area -->
+</div><!-- /tab1 -->
+
+
+<!-- ═══════════════════════ TAB 3 ═══════════════════════ -->
+<div class="content tab-panel" id="tab2">
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <h3>Initial State</h3>
+      <div class="info-box" style="font-size:0.82rem;line-height:1.6;">
+        <strong>Ψ(x,0) = (1/√2)(ψ₀ + ψ₁)</strong><br>
+        Equal superposition of ground and first excited state.
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Time</h3>
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);margin-bottom:10px;">
+        t = <span id="t3-tval" style="color:var(--accent);font-size:1.0rem;">0.000</span>
+        &nbsp;·&nbsp;
+        <span id="t3-tfrac" style="color:var(--accent4);">0.000 τ</span>
+      </div>
+      <!-- manual time scrubber -->
+      <div class="control" style="margin-bottom:8px;">
+        <label><span>Time</span><span class="val" id="t3-scrub-val">0.00 τ</span></label>
+        <input type="range" id="t3-scrub" min="0" max="1" step="0.001" value="0">
+      </div>
+      <!-- playback speed -->
+      <div class="control">
+        <label><span>Play Speed</span><span class="val" id="t3-speed-val">0.25×</span></label>
+        <input type="range" id="t3-speed" min="0.05" max="2" step="0.05" value="0.25">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Playback</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="t3-play"  class="t3-ctrl-btn t3-primary">▶ Play</button>
+        <button id="t3-pause" class="t3-ctrl-btn" style="display:none;">⏸ Pause</button>
+        <button id="t3-reset" class="t3-ctrl-btn">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Overlays</h3>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--re-color)"></span>Re[Ψ(x,t)]</div>
+        <label class="toggle" style="--color:var(--re-color)"><input type="checkbox" id="t3-showRe" checked><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--im-color)"></span>Im[Ψ(x,t)]</div>
+        <label class="toggle" style="--color:var(--im-color)"><input type="checkbox" id="t3-showIm" checked><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--accent4)"></span>⟨x⟩(t)</div>
+        <label class="toggle" style="--color:var(--accent4)"><input type="checkbox" id="t3-showXexp"><span class="slider-track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-text"><span class="dot" style="background:var(--turning)"></span>Classical turning points</div>
+        <label class="toggle" style="--color:var(--turning)"><input type="checkbox" id="t3-showTurning"><span class="slider-track"></span></label>
+      </div>
+    </div>
+
+  </div><!-- /sidebar tab3 -->
+
+  <div class="plot-area">
+    <div class="plot-title">Time evolution: <span id="t3-plot-title">Ψ(x, t=0)</span></div>
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;">
+
+      <!-- Top: wavefunction Re + Im -->
+      <div class="canvas-cell" style="flex:1;min-height:0;">
+        <div class="canvas-cell-title">Wave function &nbsp; Ψ(x, t)</div>
+        <canvas id="cvs-t3-wf"></canvas>
+      </div>
+
+      <!-- Bottom: probability density -->
+      <div class="canvas-cell" style="flex:1;min-height:0;">
+        <div class="canvas-cell-title">Probability density &nbsp; |Ψ(x,t)|²</div>
+        <canvas id="cvs-t3-pd"></canvas>
+      </div>
+
+    </div>
+  </div>
+</div><!-- /tab2 -->
+
+
+<div class="eq-bar">
+  <div><span class="key">ℏ=m=ω=</span><span>1</span></div>
+  <div><span class="key">Eₙ =</span><span>n + ½</span></div>
+  <div><span class="key">ψₙ(x) =</span><span>Nₙ H_n(x) e^(−x²/2)</span></div>
+  <div><span class="key">φₙ(p) =</span><span>(−i)ⁿ ψₙ(p)</span></div>
+  <div><span class="key">Δx·Δp =</span><span>n + ½ &nbsp;(eigenstates)</span></div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  SHARED PHYSICS   ℏ = m = ω = 1  (natural units)
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Lanczos log-Gamma (Spouge / standard 9-term) ──
+function logGamma(z) {
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.32342877765313, -176.61502916214059, 12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - logGamma(1 - z);
+  z -= 1;
+  let x = c[0];
+  for (let i = 1; i < 9; i++) x += c[i] / (z + i);
+  const t = z + 7.5;
+  return 0.5*Math.log(2*Math.PI) + (z + 0.5)*Math.log(t) - t + Math.log(x);
+}
+function logFact(n) { return n <= 1 ? 0 : logGamma(n + 1); }
+
+// ── QHO eigenfunction ψₙ(x) in natural units ──
+// log-domain Hermite recurrence avoids overflow for large n
+function psiN(n, x) {
+  const logNorm = 0.5 * (-0.5*Math.log(Math.PI) - n*Math.log(2) - logFact(n));
+  const gauss   = Math.exp(-x*x/2);
+  if (n === 0) return Math.exp(logNorm) * gauss;
+  if (n === 1) return (x === 0 ? 0 : Math.sign(x) * Math.exp(logNorm + Math.log(2*Math.abs(x)))) * gauss;
+  let s0=1, lg0=0;
+  let s1=(x>=0?1:-1), lg1=(x===0?-Infinity:Math.log(2*Math.abs(x)));
+  for (let k = 2; k <= n; k++) {
+    const lA = isFinite(lg1) ? Math.log(2*Math.abs(x)) + lg1 : -Infinity;
+    const sA  = Math.sign(x) * s1;
+    const lB  = Math.log(2*(k-1)) + lg0;
+    const sB  = -s0;
+    const mx  = Math.max(lA, lB);
+    let sum = 0;
+    if (isFinite(lA)) sum += sA * Math.exp(lA - mx);
+    if (isFinite(lB)) sum += sB * Math.exp(lB - mx);
+    const sN = sum > 0 ? 1 : (sum < 0 ? -1 : 0);
+    const lN = sum === 0 ? -Infinity : mx + Math.log(Math.abs(sum));
+    s0=s1; lg0=lg1; s1=sN; lg1=lN;
+  }
+  if (!isFinite(lg1)) return 0;
+  return s1 * Math.exp(logNorm + lg1) * gauss;
+}
+
+// ── Momentum-space eigenfunction φₙ(p) = (−i)ⁿ ψₙ(p) ──
+// For ℏ=m=ω=1 the Fourier transform maps ψₙ → (−i)ⁿ ψₙ
+// (same functional form; momentum-space wavefunction is ψₙ evaluated at p, times the phase)
+const PHASE_RE = [1,  0, -1,  0];   // Re[(−i)^n] for n mod 4
+const PHASE_IM = [0, -1,  0,  1];   // Im[(−i)^n]
+
+function phiRe(n, p) { return PHASE_RE[n % 4] * psiN(n, p); }
+function phiIm(n, p) { return PHASE_IM[n % 4] * psiN(n, p); }
+
+// ── Superposition (1/√2)(ψ₂ + ψ₃)  at t=0 ──
+// In x-space: real-valued since both ψ₂,ψ₃ are real
+// In p-space: (1/√2)[(−i)²ψ₂(p) + (−i)³ψ₃(p)] = (1/√2)[−ψ₂(p) + iψ₃(p)]
+//   Re[φ_sup] = −(1/√2)ψ₂(p)
+//   Im[φ_sup] = +(1/√2)ψ₃(p)
+const S2 = 1 / Math.SQRT2;
+
+// ── State function tables ──
+function wfRe(key, x) {
+  if (key === 'n0') return psiN(0, x);
+  if (key === 'n1') return psiN(1, x);
+  if (key === 'n2') return psiN(2, x);
+  if (key === 'n3') return psiN(3, x);
+  return S2 * (psiN(2, x) + psiN(3, x));
+}
+function wfIm(key, x) { return 0; }  // all x-space states real at t=0
+
+function momRe(key, p) {
+  if (key === 'n0') return phiRe(0, p);
+  if (key === 'n1') return phiRe(1, p);
+  if (key === 'n2') return phiRe(2, p);
+  if (key === 'n3') return phiRe(3, p);
+  return S2 * phiRe(2, p) + S2 * phiRe(3, p);
+}
+function momIm(key, p) {
+  if (key === 'n0') return phiIm(0, p);
+  if (key === 'n1') return phiIm(1, p);
+  if (key === 'n2') return phiIm(2, p);
+  if (key === 'n3') return phiIm(3, p);
+  return S2 * phiIm(2, p) + S2 * phiIm(3, p);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ANALYTIC EXPECTATION VALUES  (ℏ=m=ω=1)
+//
+//  For energy eigenstate |n⟩:
+//    ⟨x⟩  = 0            ⟨p⟩  = 0
+//    ⟨x²⟩ = n + 1/2      ⟨p²⟩ = n + 1/2
+//    Δx   = √(n+½)       Δp   = √(n+½)
+//    Δx·Δp = n + ½        (ground state saturates HUP)
+//
+//  For (1/√2)(|2⟩+|3⟩) at t=0:
+//    ⟨x⟩  = ⟨2|x|3⟩ = (1/√2)√3  [off-diag matrix element via ladder ops]
+//          = √(3/2) ≈ 1.2247
+//    ⟨x²⟩ = (1/2)(⟨x²⟩₂+⟨x²⟩₃) = (1/2)(5/2+7/2) = 3
+//    Δx²  = 3 − 3/2 = 3/2     → Δx = √(3/2) ≈ 1.2247
+//    ⟨p⟩  = 0   (real wavefunction)
+//    ⟨p²⟩ = (1/2)(5/2+7/2)  = 3
+//    Δp   = √3               ≈ 1.7321
+//    Δx·Δp = √(3/2)·√3 = √(9/2) = 3/√2 ≈ 2.1213
+// ═══════════════════════════════════════════════════════════════════
+function computeStats(key) {
+  let xm, x2, dx, pm, p2, dp;
+  if (key === 'n0') { xm=0; x2=0.5; dx=Math.sqrt(0.5); pm=0; p2=0.5; dp=Math.sqrt(0.5); }
+  else if (key === 'n1') { xm=0; x2=1.5; dx=Math.sqrt(1.5); pm=0; p2=1.5; dp=Math.sqrt(1.5); }
+  else if (key === 'n2') { xm=0; x2=2.5; dx=Math.sqrt(2.5); pm=0; p2=2.5; dp=Math.sqrt(2.5); }
+  else if (key === 'n3') { xm=0; x2=3.5; dx=Math.sqrt(3.5); pm=0; p2=3.5; dp=Math.sqrt(3.5); }
+  else { // superposition
+    xm = Math.sqrt(1.5);
+    x2 = 3.0;
+    dx = Math.sqrt(1.5);
+    pm = 0;
+    p2 = 3.0;
+    dp = Math.sqrt(3.0);
+  }
+  return { xm, x2, dx, pm, p2, dp, prod: dx * dp };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  TAB 1 — Probability density
+// ═══════════════════════════════════════════════════════════════════
+let n1 = 0;
+let t1_omega = 1.0;
+let t1_showV=true, t1_showCl=false, t1_showTp=false, t1_showE=true;
+
+function classAmp(E, w) { return Math.sqrt(2*E/w/w); }
+function classP(x, A)   { const d=A*A-x*x; return d<=0?0:1/(Math.PI*Math.sqrt(d)); }
+
+// For general ω: |ψₙ(x;ω)|² = √ω · |ψₙ(√ω·x; ω=1)|²
+function probDens1(nv, x, w) {
+  const v = psiN(nv, Math.pow(w,0.5)*x);
+  return Math.pow(w,0.5) * v*v;
+}
+
+function updateInfo1() {
+  const E=(n1+0.5)*t1_omega, A=classAmp(E,t1_omega);
+  document.getElementById('eVal').textContent=`${(n1+0.5).toFixed(2)} ℏω`;
+  document.getElementById('infoBox').innerHTML=
+    `State <strong>n = ${n1}</strong> · <strong>${n1}</strong> node${n1!==1?'s':''}<br>
+     E = <strong>${E.toFixed(3)}</strong><br>
+     x<sub>tp</sub> = <strong>±${A.toFixed(4)}</strong>
+     <span class="eq">Δx·Δp = ${(n1+0.5).toFixed(4)} ℏ</span>`;
+}
+
+function drawTab1() {
+  const cv=document.getElementById('plot1'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const E=(n1+0.5)*t1_omega, A=classAmp(E,t1_omega);
+  const xR=Math.max(A*1.65,4.0);
+  const xMin=-xR, xMax=xR;
+  const NX=Math.min(3000,Math.max(1000,n1*12+1000));
+  const xs=Array.from({length:NX},(_,i)=>xMin+(xMax-xMin)*i/(NX-1));
+  const qPDF=xs.map(x=>probDens1(n1,x,t1_omega));
+  const qMax=Math.max(...qPDF);
+  const cPDF=xs.map(x=>classP(x,A));
+  const cMaxF=cPDF.filter(isFinite); const cMax=cMaxF.length?Math.max(...cMaxF):0;
+  const vV=xs.map(x=>0.5*t1_omega*t1_omega*x*x);
+  let yMax=qMax*1.3;
+  if(t1_showCl&&isFinite(cMax)) yMax=Math.max(yMax,cMax*0.6);
+  // Anchor vScale so V(x_tp) = E maps to 65% of plot height — this means
+  // increasing ω (higher energy, narrower PDF) correctly raises the energy line.
+  const vSc = (yMax * 0.65) / E;
+  const ml=60,mr=18,mt=20,mb=42;
+  const pw=W-ml-mr,ph=H-mt-mb;
+  const tX=x=>ml+(x-xMin)/(xMax-xMin)*pw;
+  const tY=y=>mt+ph-y/yMax*ph;
+  const y0=tY(0);
+  // grid
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=1;
+  for(let t=0;t<=4;t++){const y=yMax*t/4;ctx.beginPath();ctx.moveTo(ml,tY(y));ctx.lineTo(ml+pw,tY(y));ctx.stroke();}
+  for(let i=0;i<=8;i++){const x=xMin+(xMax-xMin)*i/8;ctx.beginPath();ctx.moveTo(tX(x),mt);ctx.lineTo(tX(x),mt+ph);ctx.stroke();}
+  // axes
+  ctx.strokeStyle='#8b949e';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,mt+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ml,y0);ctx.lineTo(ml+pw,y0);ctx.stroke();
+  // labels
+  ctx.fillStyle='#8b949e'; ctx.font='10px Courier New,monospace'; ctx.textAlign='center';
+  for(let i=0;i<=8;i++){const x=xMin+(xMax-xMin)*i/8;ctx.fillText(x.toFixed(1),tX(x),mt+ph+15);}
+  ctx.textAlign='right';
+  for(let t=0;t<=4;t++){const y=yMax*t/4;ctx.fillText(y.toFixed(3),ml-5,tY(y)+4);}
+  ctx.fillStyle='#8b949e'; ctx.font='12px Georgia,serif'; ctx.textAlign='center';
+  ctx.fillText('x',ml+pw/2,mt+ph+32);
+  ctx.save();ctx.translate(12,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('|ψₙ(x)|²',0,0);ctx.restore();
+  // potential
+  if(t1_showV){
+    ctx.save();ctx.strokeStyle='#d2a8ff';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.globalAlpha=0.6;
+    ctx.beginPath();
+    xs.forEach((x,i)=>{const py=tY(vV[i]*vSc);if(py<mt-2)return;i===0?ctx.moveTo(tX(x),py):ctx.lineTo(tX(x),py);});
+    ctx.stroke();ctx.restore();
+  }
+  // classical
+  if(t1_showCl){
+    const cap=yMax*1.2;ctx.save();ctx.strokeStyle='#f78166';ctx.lineWidth=2;ctx.globalAlpha=0.85;
+    ctx.beginPath();let st=false;
+    xs.forEach((x,i)=>{const v=cPDF[i];if(!isFinite(v)||v>cap*0.99){st=false;return;}const py=tY(Math.min(v,cap));st?ctx.lineTo(tX(x),py):(ctx.moveTo(tX(x),py),st=true);});
+    ctx.stroke();ctx.restore();
+  }
+  // turning points
+  if(t1_showTp){
+    ctx.save();ctx.strokeStyle='#3fb950';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.globalAlpha=0.9;
+    [-A,A].forEach(xtp=>{ctx.beginPath();ctx.moveTo(tX(xtp),mt);ctx.lineTo(tX(xtp),mt+ph);ctx.stroke();});
+    ctx.restore();
+    ctx.fillStyle='#3fb950';ctx.font='10px Courier New,monospace';ctx.textAlign='center';
+    ctx.fillText(`-${A.toFixed(2)}`,tX(-A),mt+13);ctx.fillText(`+${A.toFixed(2)}`,tX(A),mt+13);
+  }
+  // energy line
+  if(t1_showE){
+    const eS=E*vSc;if(eS<yMax){
+      ctx.save();ctx.strokeStyle='#58a6ff';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.globalAlpha=0.4;
+      ctx.beginPath();ctx.moveTo(ml,tY(eS));ctx.lineTo(ml+pw,tY(eS));ctx.stroke();ctx.restore();
+      ctx.fillStyle='#58a6ff';ctx.font='10px Courier New,monospace';ctx.textAlign='left';
+      ctx.fillText(`E${n1}=${E.toFixed(2)}`,ml+4,tY(eS)-4);
+    }
+  }
+  // filled PDF
+  const gr=ctx.createLinearGradient(0,mt,0,y0);
+  gr.addColorStop(0,'rgba(88,166,255,0.30)');gr.addColorStop(1,'rgba(88,166,255,0.02)');
+  ctx.save();ctx.fillStyle=gr;
+  ctx.beginPath();ctx.moveTo(tX(xs[0]),y0);
+  xs.forEach((x,i)=>ctx.lineTo(tX(x),tY(qPDF[i])));
+  ctx.lineTo(tX(xs[NX-1]),y0);ctx.closePath();ctx.fill();ctx.restore();
+  // PDF line
+  ctx.save();ctx.strokeStyle='#58a6ff';ctx.lineWidth=2.2;ctx.lineJoin='round';
+  ctx.beginPath();xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(qPDF[i])):ctx.lineTo(tX(x),tY(qPDF[i])));
+  ctx.stroke();ctx.restore();
+  // legend
+  const L=document.getElementById('legend1');
+  let h=`<div class="legend-item"><div class="legend-line" style="background:var(--quantum)"></div><span style="color:var(--quantum)">|ψₙ|²</span></div>`;
+  if(t1_showV) h+=`<div class="legend-item"><div class="legend-line dashed" style="color:var(--potential)"></div><span style="color:var(--potential)">V(x)</span></div>`;
+  if(t1_showCl) h+=`<div class="legend-item"><div class="legend-line" style="background:var(--classical)"></div><span style="color:var(--classical)">Classical P(x)</span></div>`;
+  if(t1_showTp) h+=`<div class="legend-item"><div class="legend-line dashed" style="color:var(--turning)"></div><span style="color:var(--turning)">±x_tp</span></div>`;
+  L.innerHTML=h;
+}
+
+function resizeTab1() {
+  const c=document.getElementById('plot1'),r=c.getBoundingClientRect();
+  if(r.width<2||r.height<2)return;
+  c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;
+  c.getContext('2d').scale(devicePixelRatio,devicePixelRatio);
+  drawTab1();
+}
+function setN(v){n1=Math.min(100,Math.max(0,v));document.getElementById('nInput').value=n1;updateInfo1();drawTab1();}
+function commitN(){let v=parseInt(document.getElementById('nInput').value,10);const inp=document.getElementById('nInput');if(isNaN(v)||v<0){inp.classList.add('error');return;}v=Math.min(v,100);inp.value=v;inp.classList.remove('error');n1=v;updateInfo1();drawTab1();}
+document.getElementById('nInput').addEventListener('change',commitN);
+document.getElementById('nInput').addEventListener('keydown',e=>{if(e.key==='Enter')commitN();});
+document.getElementById('nUp').addEventListener('click',()=>setN(n1+1));
+document.getElementById('nDown').addEventListener('click',()=>setN(n1-1));
+document.getElementById('omegaSlider').addEventListener('input',function(){t1_omega=+this.value;document.getElementById('omegaVal').textContent=t1_omega.toFixed(2);updateInfo1();drawTab1();});
+document.getElementById('toggleV').addEventListener('change',function(){t1_showV=this.checked;drawTab1();});
+document.getElementById('toggleClassical').addEventListener('change',function(){t1_showCl=this.checked;drawTab1();});
+document.getElementById('toggleTurning').addEventListener('change',function(){t1_showTp=this.checked;drawTab1();});
+document.getElementById('toggleEnergy').addEventListener('change',function(){t1_showE=this.checked;drawTab1();});
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  TAB 2 — Wave functions & Uncertainty
+// ═══════════════════════════════════════════════════════════════════
+let t2State = 'n0';
+let t2Re=true, t2Im=true, t2PD=true, t2Stats=false;
+
+function setState(key) {
+  t2State=key;
+  ['n0','n1','n2','n3','sup'].forEach(k=>document.getElementById('sbtn-'+k).classList.toggle('active',k===key));
+  const labels={n0:'n = 0', n1:'n = 1', n2:'n = 2', n3:'n = 3', sup:'(1/√2)(ψ₂ + ψ₃)'};
+  document.getElementById('t2-state-label').textContent=labels[key];
+  refreshUncertainty();
+  drawTab2();
+}
+
+function refreshUncertainty() {
+  const S=computeStats(t2State);
+  const f=v=>v.toFixed(4);
+  document.getElementById('ub-xmean').textContent = f(S.xm);
+  document.getElementById('ub-x2').textContent    = f(S.x2);
+  document.getElementById('ub-dx').textContent    = f(S.dx);
+  document.getElementById('ub-pmean').textContent = f(S.pm);
+  document.getElementById('ub-p2').textContent    = f(S.p2);
+  document.getElementById('ub-dp').textContent    = f(S.dp);
+}
+
+// ── Generic canvas plotter ──
+function plotCanvas(id, xs, reV, imV, pdV, mean, sigma, xLab, yLab, showRe, showIm, showPD, showStats, xClassLim, pClassLim) {
+  const cv=document.getElementById(id); if(!cv)return;
+  const ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const N=xs.length, xMin=xs[0], xMax=xs[N-1];
+
+  // y range
+  let yAbs=0;
+  if(showRe) reV.forEach(v=>{const a=Math.abs(v);if(a>yAbs)yAbs=a;});
+  if(showIm) imV.forEach(v=>{const a=Math.abs(v);if(a>yAbs)yAbs=a;});
+  if(showPD) pdV.forEach(v=>{if(v>yAbs)yAbs=v;});
+  if(yAbs<1e-14) yAbs=1;
+  const hasWave = showRe||showIm;
+  const yMax = yAbs*1.28;
+  const yMin = hasWave ? -yMax*0.52 : -yMax*0.06;
+  const yR   = yMax-yMin;
+  const ml=54,mr=14,mt=17,mb=34;
+  const pw=W-ml-mr, ph=H-mt-mb;
+  const tX=x=>ml+(x-xMin)/(xMax-xMin)*pw;
+  const tY=y=>mt+ph-(y-yMin)/yR*ph;
+  const y0=tY(0);
+
+  // grid
+  ctx.strokeStyle='#21262d';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=yMin+yR*i/4;ctx.beginPath();ctx.moveTo(ml,tY(y));ctx.lineTo(ml+pw,tY(y));ctx.stroke();}
+  for(let i=0;i<=6;i++){const x=xMin+(xMax-xMin)*i/6;ctx.beginPath();ctx.moveTo(tX(x),mt);ctx.lineTo(tX(x),mt+ph);ctx.stroke();}
+  // axes
+  ctx.strokeStyle='#8b949e';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,mt+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ml,y0);ctx.lineTo(ml+pw,y0);ctx.stroke();
+  // tick labels
+  ctx.fillStyle='#8b949e';ctx.font='9px Courier New,monospace';
+  ctx.textAlign='center';
+  for(let i=0;i<=6;i++){const x=xMin+(xMax-xMin)*i/6;ctx.fillText(x.toFixed(1),tX(x),mt+ph+12);}
+  ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const y=yMin+yR*i/4;ctx.fillText(y.toFixed(2),ml-4,tY(y)+3);}
+  ctx.fillStyle='#8b949e';ctx.font='11px Georgia,serif';ctx.textAlign='center';
+  ctx.fillText(xLab,ml+pw/2,mt+ph+27);
+  ctx.save();ctx.translate(10,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText(yLab,0,0);ctx.restore();
+
+  // PD fill
+  if(showPD){
+    ctx.save();
+    const g=ctx.createLinearGradient(0,mt,0,y0);
+    g.addColorStop(0,'rgba(63,185,80,0.25)');g.addColorStop(1,'rgba(63,185,80,0.02)');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.moveTo(tX(xs[0]),y0);
+    xs.forEach((x,i)=>ctx.lineTo(tX(x),tY(pdV[i])));
+    ctx.lineTo(tX(xs[N-1]),y0);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#3fb950';ctx.lineWidth=1.8;ctx.lineJoin='round';
+    ctx.beginPath();xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(pdV[i])):ctx.lineTo(tX(x),tY(pdV[i])));
+    ctx.stroke();ctx.restore();
+  }
+  // Im line
+  if(showIm){
+    ctx.save();ctx.strokeStyle='#f78166';ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.setLineDash([5,3]);
+    ctx.beginPath();xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(imV[i])):ctx.lineTo(tX(x),tY(imV[i])));
+    ctx.stroke();ctx.restore();
+  }
+  // Re line
+  if(showRe){
+    ctx.save();ctx.strokeStyle='#58a6ff';ctx.lineWidth=2.2;ctx.lineJoin='round';
+    ctx.beginPath();xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(reV[i])):ctx.lineTo(tX(x),tY(reV[i])));
+    ctx.stroke();ctx.restore();
+  }
+
+  // ── Expectation value & uncertainty bands ──
+  if(showStats) {
+    const pxMean=tX(mean);
+    // ±Δ shaded band
+    const pxL=tX(mean-sigma), pxR=tX(mean+sigma);
+    const clpxL=Math.max(ml,pxL), clpxR=Math.min(ml+pw,pxR);
+    if(clpxR>clpxL){
+      ctx.save();ctx.fillStyle='rgba(210,168,255,0.09)';
+      ctx.fillRect(clpxL,mt,clpxR-clpxL,ph);ctx.restore();
+    }
+    // ±Δ dashed lines
+    ctx.save();ctx.strokeStyle='#d2a8ff';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.globalAlpha=0.55;
+    [mean-sigma,mean+sigma].forEach(xv=>{
+      const px=tX(xv);
+      if(px>=ml&&px<=ml+pw){ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();}
+    });
+    ctx.restore();
+    // ⟨x⟩ solid line
+    if(pxMean>=ml&&pxMean<=ml+pw){
+      ctx.save();ctx.strokeStyle='#d2a8ff';ctx.lineWidth=1.5;ctx.globalAlpha=0.9;
+      ctx.beginPath();ctx.moveTo(pxMean,mt);ctx.lineTo(pxMean,mt+ph);ctx.stroke();ctx.restore();
+    }
+    // labels
+    ctx.fillStyle='rgba(210,168,255,0.82)';ctx.font='9px Courier New,monospace';
+    // ⟨x⟩ label at top
+    const pxMc=Math.max(ml+24,Math.min(ml+pw-24,pxMean));
+    ctx.textAlign='center';
+    ctx.fillText('⟨'+xLab+'⟩='+mean.toFixed(3),pxMc,mt+11);
+    // Δ label at bottom of band, centred
+    const bandCx=(clpxL+clpxR)/2;
+    if(clpxR>clpxL) ctx.fillText('Δ'+xLab+'='+sigma.toFixed(3),bandCx,mt+ph-5);
+  }
+
+  // ── Classical limits (turning points on x plots, max momentum on p plots) ──
+  const classLim = xClassLim || pClassLim;
+  if(classLim) {
+    const label = xClassLim ? '±x_tp' : '±p_max';
+    ctx.save();ctx.strokeStyle='#3fb950';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.globalAlpha=0.8;
+    [-classLim, classLim].forEach(v=>{
+      const px=tX(v);
+      if(px>=ml-1&&px<=ml+pw+1){ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();}
+    });
+    ctx.restore();
+    ctx.fillStyle='#3fb950';ctx.font='9px Courier New,monospace';ctx.textAlign='center';ctx.globalAlpha=0.8;
+    const pL=tX(-classLim), pR=tX(classLim);
+    if(pL>=ml&&pL<=ml+pw) ctx.fillText('-'+classLim.toFixed(2), pL, mt+ph-5);
+    if(pR>=ml&&pR<=ml+pw) ctx.fillText('+'+classLim.toFixed(2), pR, mt+ph-5);
+  }
+}
+
+function drawTab2() {
+  if(!document.getElementById('tab1').classList.contains('active')) return;
+  const key=t2State;
+  const R=5.5, NX=1200;
+  const xs=Array.from({length:NX},(_,i)=>-R+2*R*i/(NX-1));
+
+  const xRe=xs.map(x=>wfRe(key,x));
+  const xIm=xs.map(x=>wfIm(key,x));
+  const xPd=xs.map(x=>{const r=wfRe(key,x),im=wfIm(key,x);return r*r+im*im;});
+
+  const pRe=xs.map(p=>momRe(key,p));
+  const pIm=xs.map(p=>momIm(key,p));
+  const pPd=xs.map(p=>{const r=momRe(key,p),im=momIm(key,p);return r*r+im*im;});
+
+  const S=computeStats(key);
+
+  // Classical limit: x_tp = p_max = ±√(2E) = ±√(2n+1) for eigenstate n
+  // For superposition (½|2⟩+½|3⟩): use mean energy = (5/2+7/2)/2 = 3 → limit = ±√6
+  const classLimKeys = {n0:Math.sqrt(1), n1:Math.sqrt(3), n2:Math.sqrt(5), n3:Math.sqrt(7), sup:Math.sqrt(6)};
+  const clim = t2_showClassical ? classLimKeys[key] : null;
+
+  plotCanvas('cvs-xwf',xs,xRe,xIm,xPd,S.xm,S.dx,'x','ψ(x)',   t2Re,t2Im,false,t2Stats,clim,null);
+  plotCanvas('cvs-pwf',xs,pRe,pIm,pPd,S.pm,S.dp,'p','φ(p)',   t2Re,t2Im,false,t2Stats,null,clim);
+  plotCanvas('cvs-xpd',xs,xRe,xIm,xPd,S.xm,S.dx,'x','|ψ(x)|²',false,false,true,t2Stats,clim,null);
+  plotCanvas('cvs-ppd',xs,pRe,pIm,pPd,S.pm,S.dp,'p','|φ(p)|²',false,false,true,t2Stats,null,clim);
+}
+
+function resizeTab2() {
+  ['cvs-xwf','cvs-pwf','cvs-xpd','cvs-ppd'].forEach(id=>{
+    const c=document.getElementById(id),r=c.getBoundingClientRect();
+    if(r.width<2||r.height<2)return;
+    c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;
+    c.getContext('2d').scale(devicePixelRatio,devicePixelRatio);
+  });
+  drawTab2();
+}
+
+let t2_showClassical = false;
+
+document.getElementById('t2-showRe').addEventListener('change',function(){t2Re=this.checked;drawTab2();});
+document.getElementById('t2-showIm').addEventListener('change',function(){t2Im=this.checked;drawTab2();});
+document.getElementById('t2-showStats').addEventListener('change',function(){t2Stats=this.checked;drawTab2();});
+document.getElementById('t2-showClassical').addEventListener('change',function(){t2_showClassical=this.checked;drawTab2();});
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  TAB 3 — Time Evolution
+//  State: Ψ(x,t) = (1/√2)[ψ₀(x)e^{-iE₀t} + ψ₁(x)e^{-iE₁t}]
+//  ℏ=m=ω=1 → E₀=½, E₁=3/2
+//  |Ψ|² = ½(ψ₀²+ψ₁²) + ψ₀ψ₁·cos(t)   period τ=2π
+//  ⟨x⟩(t) = (1/√2)cos(t)   via ⟨0|x̂|1⟩=1/√2 (ladder ops)
+//  ⟨p⟩(t) = -(1/√2)sin(t)
+// ═══════════════════════════════════════════════════════════════════
+const T3_TAU = 2 * Math.PI;   // period in natural units
+
+let t3_t      = 0;             // current time
+let t3_playing = false;
+let t3_speed   = 0.25;
+let t3_lastTS  = null;
+let t3_animID  = null;
+let t3_showRe      = true;
+let t3_showIm      = true;
+let t3_showXexp    = false;
+let t3_showTurning = false;
+
+// Classical turning points: mean energy ⟨E⟩ = (E₀+E₁)/2 = (½+3/2)/2 = 1
+// x_tp = ±√(2⟨E⟩/mω²) = ±√2  (ℏ=m=ω=1)
+// p_max = ±√(2⟨E⟩·m) = ±√2
+const T3_XTP = Math.sqrt(2);
+
+// Precompute ψ₀ and ψ₁ on a fixed grid (they don't change)
+const T3_NX   = 800;
+const T3_XMAX = 3.0;
+const t3_xs   = Array.from({length:T3_NX}, (_,i) => -T3_XMAX + 2*T3_XMAX*i/(T3_NX-1));
+const t3_psi0 = t3_xs.map(x => psiN(0, x));
+const t3_psi1 = t3_xs.map(x => psiN(1, x));
+
+// Ψ(x,t) = (1/√2)[ψ₀ e^{-it/2} + ψ₁ e^{-3it/2}]
+// Re[Ψ] = (1/√2)[ψ₀ cos(t/2) + ψ₁ cos(3t/2)]
+// Im[Ψ] = -(1/√2)[ψ₀ sin(t/2) + ψ₁ sin(3t/2)]
+function t3_computeWF(t) {
+  const c0 = Math.cos(t/2),  s0 = Math.sin(t/2);
+  const c1 = Math.cos(3*t/2), s1 = Math.sin(3*t/2);
+  const re = [], im = [], pd = [];
+  for (let i = 0; i < T3_NX; i++) {
+    const r = S2 * (t3_psi0[i]*c0 + t3_psi1[i]*c1);
+    const m = -S2 * (t3_psi0[i]*s0 + t3_psi1[i]*s1);
+    re.push(r); im.push(m); pd.push(r*r + m*m);
+  }
+  return {re, im, pd};
+}
+
+// ⟨x⟩(t) = (1/√2)cos(t),  ⟨p⟩(t) = -(1/√2)sin(t)
+function t3_xexp(t) { return S2 * Math.cos(t); }
+function t3_pexp(t) { return -S2 * Math.sin(t); }
+
+function t3_updateTimeDisplay() {
+  const frac = t3_t / T3_TAU;
+  document.getElementById('t3-tval').textContent  = t3_t.toFixed(3);
+  document.getElementById('t3-tfrac').textContent = frac.toFixed(3) + ' τ';
+  document.getElementById('t3-scrub').value       = (frac % 1 + 1) % 1;
+  document.getElementById('t3-scrub-val').textContent = frac.toFixed(3) + ' τ';
+  document.getElementById('t3-plot-title').textContent =
+    `Ψ(x, t = ${t3_t.toFixed(3)})`;
+}
+
+function t3_drawFrame() {
+  const {re, im, pd} = t3_computeWF(t3_t);
+  t3_drawWF(re, im);
+  t3_drawPD(pd);
+  t3_updateTimeDisplay();
+}
+
+// ── Draw wavefunction (Re + Im) ──
+function t3_drawWF(re, im) {
+  const cv = document.getElementById('cvs-t3-wf');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  const xMin = t3_xs[0], xMax = t3_xs[T3_NX-1];
+  // fixed y range — use max of ψ₀/ψ₁ combo envelope
+  const yMax = 0.85, yMin = -yMax;
+  const yR = yMax - yMin;
+  const ml=54,mr=14,mt=18,mb=34;
+  const pw=W-ml-mr, ph=H-mt-mb;
+  const tX = x  => ml + (x-xMin)/(xMax-xMin)*pw;
+  const tY = y  => mt + ph - (y-yMin)/yR*ph;
+  const y0 = tY(0);
+
+  // grid
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=yMin+yR*i/4;ctx.beginPath();ctx.moveTo(ml,tY(y));ctx.lineTo(ml+pw,tY(y));ctx.stroke();}
+  for(let i=0;i<=8;i++){const x=xMin+(xMax-xMin)*i/8;ctx.beginPath();ctx.moveTo(tX(x),mt);ctx.lineTo(tX(x),mt+ph);ctx.stroke();}
+  // axes
+  ctx.strokeStyle='#8b949e'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,mt+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ml,y0);ctx.lineTo(ml+pw,y0);ctx.stroke();
+  // labels
+  ctx.fillStyle='#8b949e'; ctx.font='9px Courier New,monospace';
+  ctx.textAlign='center';
+  for(let i=0;i<=8;i++){const x=xMin+(xMax-xMin)*i/8;ctx.fillText(x.toFixed(1),tX(x),mt+ph+13);}
+  ctx.textAlign='right';
+  [-0.6,-0.3,0,0.3,0.6].forEach(y=>ctx.fillText(y.toFixed(1),ml-4,tY(y)+3));
+  ctx.fillStyle='#8b949e'; ctx.font='11px Georgia,serif'; ctx.textAlign='center';
+  ctx.fillText('x',ml+pw/2,mt+ph+27);
+  ctx.save();ctx.translate(10,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Ψ(x,t)',0,0);ctx.restore();
+
+  // Im
+  if(t3_showIm){
+    ctx.save();ctx.strokeStyle='#f78166';ctx.lineWidth=1.8;ctx.setLineDash([5,3]);ctx.lineJoin='round';
+    ctx.beginPath();t3_xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(im[i])):ctx.lineTo(tX(x),tY(im[i])));
+    ctx.stroke();ctx.restore();
+  }
+  // Re
+  if(t3_showRe){
+    ctx.save();ctx.strokeStyle='#58a6ff';ctx.lineWidth=2.2;ctx.lineJoin='round';
+    ctx.beginPath();t3_xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(re[i])):ctx.lineTo(tX(x),tY(re[i])));
+    ctx.stroke();ctx.restore();
+  }
+
+  // ⟨x⟩ line
+  if(t3_showXexp){
+    const xmean = t3_xexp(t3_t);
+    const px = tX(xmean);
+    ctx.save();ctx.strokeStyle='#d2a8ff';ctx.lineWidth=1.8;ctx.globalAlpha=0.9;
+    ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();ctx.restore();
+    ctx.fillStyle='#d2a8ff';ctx.font='9px Courier New,monospace';ctx.textAlign='center';
+    ctx.fillText('⟨x⟩='+xmean.toFixed(3), Math.max(ml+26,Math.min(ml+pw-26,px)), mt+11);
+  }
+
+  // classical turning points ±√2
+  if(t3_showTurning){
+    ctx.save();ctx.strokeStyle='#3fb950';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.globalAlpha=0.85;
+    [-T3_XTP, T3_XTP].forEach(xtp=>{
+      const px=tX(xtp);
+      ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();
+    });
+    ctx.restore();
+    ctx.fillStyle='#3fb950';ctx.font='9px Courier New,monospace';ctx.textAlign='center';ctx.globalAlpha=0.85;
+    ctx.fillText('-√2',tX(-T3_XTP),mt+ph-6);
+    ctx.fillText('+√2',tX(T3_XTP),mt+ph-6);
+  }
+
+  // legend
+  ctx.font='9px Courier New,monospace'; ctx.textAlign='left';
+  let lx = ml+4;
+  if(t3_showRe){ctx.fillStyle='#58a6ff';ctx.fillText('── Re[Ψ]',lx,mt+ph-6);lx+=72;}
+  if(t3_showIm){ctx.fillStyle='#f78166';ctx.fillText('- - Im[Ψ]',lx,mt+ph-6);}
+}
+
+// ── Draw probability density ──
+function t3_drawPD(pd) {
+  const cv = document.getElementById('cvs-t3-pd');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  const xMin = t3_xs[0], xMax = t3_xs[T3_NX-1];
+  const yMax = 0.72, yMin = -yMax*0.05;
+  const yR = yMax - yMin;
+  const ml=54,mr=14,mt=18,mb=34;
+  const pw=W-ml-mr, ph=H-mt-mb;
+  const tX = x  => ml + (x-xMin)/(xMax-xMin)*pw;
+  const tY = y  => mt + ph - (y-yMin)/yR*ph;
+  const y0 = tY(0);
+
+  // grid
+  ctx.strokeStyle='#21262d'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=yMin+yR*i/4;ctx.beginPath();ctx.moveTo(ml,tY(y));ctx.lineTo(ml+pw,tY(y));ctx.stroke();}
+  for(let i=0;i<=8;i++){const x=xMin+(xMax-xMin)*i/8;ctx.beginPath();ctx.moveTo(tX(x),mt);ctx.lineTo(tX(x),mt+ph);ctx.stroke();}
+  // axes
+  ctx.strokeStyle='#8b949e'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,mt+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ml,y0);ctx.lineTo(ml+pw,y0);ctx.stroke();
+  // labels
+  ctx.fillStyle='#8b949e'; ctx.font='9px Courier New,monospace';
+  ctx.textAlign='center';
+  for(let i=0;i<=8;i++){const x=xMin+(xMax-xMin)*i/8;ctx.fillText(x.toFixed(1),tX(x),mt+ph+13);}
+  ctx.textAlign='right';
+  [0,0.2,0.4,0.6].forEach(y=>ctx.fillText(y.toFixed(1),ml-4,tY(y)+3));
+  ctx.fillStyle='#8b949e'; ctx.font='11px Georgia,serif'; ctx.textAlign='center';
+  ctx.fillText('x',ml+pw/2,mt+ph+27);
+  ctx.save();ctx.translate(10,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('|Ψ(x,t)|²',0,0);ctx.restore();
+
+  // fill + line
+  ctx.save();
+  const g=ctx.createLinearGradient(0,mt,0,y0);
+  g.addColorStop(0,'rgba(63,185,80,0.28)');g.addColorStop(1,'rgba(63,185,80,0.02)');
+  ctx.fillStyle=g;
+  ctx.beginPath();ctx.moveTo(tX(t3_xs[0]),y0);
+  t3_xs.forEach((x,i)=>ctx.lineTo(tX(x),tY(pd[i])));
+  ctx.lineTo(tX(t3_xs[T3_NX-1]),y0);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#3fb950';ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.beginPath();t3_xs.forEach((x,i)=>i===0?ctx.moveTo(tX(x),tY(pd[i])):ctx.lineTo(tX(x),tY(pd[i])));
+  ctx.stroke();ctx.restore();
+
+  // ⟨x⟩ line on PD plot
+  if(t3_showXexp){
+    const xmean = t3_xexp(t3_t);
+    const px = tX(xmean);
+    ctx.save();ctx.strokeStyle='#d2a8ff';ctx.lineWidth=1.8;ctx.globalAlpha=0.9;
+    ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();ctx.restore();
+    ctx.fillStyle='#d2a8ff';ctx.font='9px Courier New,monospace';ctx.textAlign='center';
+    ctx.fillText('⟨x⟩='+xmean.toFixed(3), Math.max(ml+26,Math.min(ml+pw-26,px)), mt+11);
+  }
+
+  // classical turning points ±√2
+  if(t3_showTurning){
+    ctx.save();ctx.strokeStyle='#3fb950';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.globalAlpha=0.85;
+    [-T3_XTP, T3_XTP].forEach(xtp=>{
+      const px=tX(xtp);
+      ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();
+    });
+    ctx.restore();
+    ctx.fillStyle='#3fb950';ctx.font='9px Courier New,monospace';ctx.textAlign='center';ctx.globalAlpha=0.85;
+    ctx.fillText('-√2',tX(-T3_XTP),mt+ph-6);
+    ctx.fillText('+√2',tX(T3_XTP),mt+ph-6);
+  }
+}
+
+// ── Animation loop ──
+function t3_tick(ts) {
+  if(!t3_playing) return;
+  if(t3_lastTS !== null) {
+    const dt = (ts - t3_lastTS) / 1000;   // seconds of real time
+    t3_t += dt * t3_speed * (2*Math.PI);  // advance by speed × ω (ω=1 → one τ per real second at speed=1)
+  }
+  t3_lastTS = ts;
+  t3_drawFrame();
+  t3_animID = requestAnimationFrame(t3_tick);
+}
+
+function t3_play() {
+  if(t3_playing) return;
+  t3_playing = true;
+  t3_lastTS  = null;
+  document.getElementById('t3-play').style.display  = 'none';
+  document.getElementById('t3-pause').style.display = '';
+  t3_animID = requestAnimationFrame(t3_tick);
+}
+function t3_pause() {
+  t3_playing = false;
+  t3_lastTS  = null;
+  if(t3_animID) cancelAnimationFrame(t3_animID);
+  document.getElementById('t3-play').style.display  = '';
+  document.getElementById('t3-pause').style.display = 'none';
+}
+function t3_reset() {
+  t3_pause();
+  t3_t = 0;
+  document.getElementById('t3-scrub').value = 0;
+  t3_drawFrame();
+}
+
+document.getElementById('t3-play').addEventListener('click', t3_play);
+document.getElementById('t3-pause').addEventListener('click', t3_pause);
+document.getElementById('t3-reset').addEventListener('click', t3_reset);
+
+document.getElementById('t3-scrub').addEventListener('input', function() {
+  const wasPlaying = t3_playing;
+  if(wasPlaying) t3_pause();
+  t3_t = parseFloat(this.value) * T3_TAU;
+  t3_drawFrame();
+  if(wasPlaying) t3_play();
+});
+
+document.getElementById('t3-speed').addEventListener('input', function() {
+  t3_speed = parseFloat(this.value);
+  document.getElementById('t3-speed-val').textContent = t3_speed.toFixed(1) + '×';
+});
+
+document.getElementById('t3-showRe').addEventListener('change',function(){t3_showRe=this.checked;t3_drawFrame();});
+document.getElementById('t3-showIm').addEventListener('change',function(){t3_showIm=this.checked;t3_drawFrame();});
+document.getElementById('t3-showXexp').addEventListener('change',function(){t3_showXexp=this.checked;t3_drawFrame();});
+document.getElementById('t3-showTurning').addEventListener('change',function(){t3_showTurning=this.checked;t3_drawFrame();});
+
+function resizeTab3() {
+  ['cvs-t3-wf','cvs-t3-pd'].forEach(id=>{
+    const c=document.getElementById(id), r=c.getBoundingClientRect();
+    if(r.width<2||r.height<2) return;
+    c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;
+    c.getContext('2d').scale(devicePixelRatio,devicePixelRatio);
+  });
+  t3_drawFrame();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════
+const panels=[document.getElementById('tab0'),document.getElementById('tab1'),document.getElementById('tab2')];
+const tbtns=document.querySelectorAll('.tab-btn');
+function switchTab(i){
+  // pause animation if leaving tab3
+  if(!panels[2].classList.contains('active') === false && i!==2) t3_pause();
+  tbtns.forEach((b,j)=>b.classList.toggle('active',j===i));
+  panels.forEach((p,j)=>p.classList.toggle('active',j===i));
+  if(i===0) resizeTab1();
+  if(i===1) resizeTab2();
+  if(i===2) resizeTab3();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  INIT & RESIZE OBSERVERS
+// ═══════════════════════════════════════════════════════════════════
+new ResizeObserver(()=>{if(panels[0].classList.contains('active'))resizeTab1();}).observe(document.getElementById('plot1'));
+const ro2=new ResizeObserver(()=>{if(panels[1].classList.contains('active'))resizeTab2();});
+['cvs-xwf','cvs-pwf','cvs-xpd','cvs-ppd'].forEach(id=>ro2.observe(document.getElementById(id)));
+const ro3=new ResizeObserver(()=>{if(panels[2].classList.contains('active'))resizeTab3();});
+['cvs-t3-wf','cvs-t3-pd'].forEach(id=>ro3.observe(document.getElementById(id)));
+
+window.addEventListener('load',()=>{
+  updateInfo1(); resizeTab1();
+  setState('n0');
+});
+</script>
+</body>
+</html>
