@@ -891,8 +891,10 @@ function plotCanvas(id, xs, reV, imV, pdV, mean, sigma, xLab, yLab, showRe, show
   if(showPD) pdV.forEach(v=>{if(v>yAbs)yAbs=v;});
   if(yAbs<1e-14) yAbs=1;
   const hasWave = showRe||showIm;
-  const yMax = yAbs*1.28;
-  const yMin = hasWave ? -yMax*0.52 : -yMax*0.06;
+  // For wave function plots (hasWave=true), fix y range to ±1 for consistency.
+  // For probability density plots, use data-driven range.
+  const yMax = hasWave ? 1.0 : yAbs*1.28;
+  const yMin = hasWave ? -1.0 : -yAbs*0.06;
   const yR   = yMax-yMin;
   const ml=54,mr=14,mt=17,mb=34;
   const pw=W-ml-mr, ph=H-mt-mb;
