@@ -350,12 +350,9 @@
     .plot-area { padding: 12px 12px; gap: 6px; height: auto; overflow: visible; }
     .plot-title { font-size: 0.82rem; }
 
-    /* Canvas: use aspect ratio on mobile so height is always defined */
+    /* Canvas: JS sets explicit px dimensions on mobile */
     canvas {
       flex: none !important;
-      width: 100% !important;
-      height: auto !important;
-      aspect-ratio: 2 / 1;
       min-height: 0 !important;
     }
 
@@ -925,17 +922,32 @@ function drawTab1() {
 }
 
 function resizeCanvas(c) {
-  const w = c.offsetWidth, h = c.offsetHeight;
-  if(w < 2 || h < 2) return false;
+  const isMobile = window.innerWidth <= 700;
+  let w, h;
+  if (isMobile) {
+    // On mobile: canvas fills full viewport width minus padding, height = width/2
+    w = window.innerWidth - 24;   // 12px padding each side
+    h = Math.round(w / 2);
+  } else {
+    // On desktop: read the actual rendered size via getBoundingClientRect
+    const r = c.getBoundingClientRect();
+    w = Math.round(r.width);
+    h = Math.round(r.height);
+  }
+  if (w < 2 || h < 2) return false;
+  c.style.width  = w + 'px';
+  c.style.height = h + 'px';
   c.width  = w * devicePixelRatio;
   c.height = h * devicePixelRatio;
-  c.getContext('2d').scale(devicePixelRatio, devicePixelRatio);
+  const ctx = c.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0);   // reset any prior scale
+  ctx.scale(devicePixelRatio, devicePixelRatio);
   return true;
 }
 
 function resizeTab1() {
   const c = document.getElementById('plot1');
-  if(resizeCanvas(c)) drawTab1();
+  if (resizeCanvas(c)) drawTab1();
 }
 function setN(v){n1=Math.min(100,Math.max(0,v));document.getElementById('nInput').value=n1;updateInfo1();drawTab1();}
 function commitN(){let v=parseInt(document.getElementById('nInput').value,10);const inp=document.getElementById('nInput');if(isNaN(v)||v<0){inp.classList.add('error');return;}v=Math.min(v,100);inp.value=v;inp.classList.remove('error');n1=v;updateInfo1();drawTab1();}
@@ -1467,22 +1479,36 @@ function switchTab(i){
 // ═══════════════════════════════════════════════════════════════════
 //  INIT & RESIZE OBSERVERS
 // ═══════════════════════════════════════════════════════════════════
-new ResizeObserver(()=>{if(panels[0].classList.contains('active'))resizeTab1();}).observe(document.getElementById('plot1'));
-const ro2=new ResizeObserver(()=>{if(panels[1].classList.contains('active'))resizeTab2();});
+function debounce(fn, ms=30) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(()=>fn(...args), ms); };
+}
+
+const dResizeTab1 = debounce(resizeTab1);
+const dResizeTab2 = debounce(resizeTab2);
+const dResizeTab3 = debounce(resizeTab3);
+
+new ResizeObserver(()=>{ if(panels[0].classList.contains('active')) dResizeTab1(); }).observe(document.getElementById('plot1'));
+const ro2=new ResizeObserver(()=>{ if(panels[1].classList.contains('active')) dResizeTab2(); });
 ['cvs-xwf','cvs-pwf','cvs-xpd','cvs-ppd'].forEach(id=>ro2.observe(document.getElementById(id)));
-const ro3=new ResizeObserver(()=>{if(panels[2].classList.contains('active'))resizeTab3();});
+const ro3=new ResizeObserver(()=>{ if(panels[2].classList.contains('active')) dResizeTab3(); });
 ['cvs-t3-wf','cvs-t3-pd'].forEach(id=>ro3.observe(document.getElementById(id)));
 
 window.addEventListener('load',()=>{
   updateInfo1();
   setState('n0');
-  // Defer first draw until after the browser has done its first layout pass,
-  // so offsetWidth/offsetHeight return real values on all devices including mobile.
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       resizeTab1();
     });
   });
+});
+
+window.addEventListener('resize', () => {
+  const i = panels.findIndex(p => p.classList.contains('active'));
+  if(i===0) resizeTab1();
+  if(i===1) resizeTab2();
+  if(i===2) resizeTab3();
 });
 </script>
 </body>
