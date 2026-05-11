@@ -306,12 +306,100 @@
   .t3-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
   .t3-ctrl-btn.t3-primary { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
   .t3-ctrl-btn.t3-primary:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); }
+
+  /* ── Hamburger button (mobile only) ── */
+  .sidebar-toggle {
+    display: none;
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    padding: 6px 8px; margin-left: auto;
+    font-size: 1.2rem; line-height: 1;
+  }
+
+  /* ══════════════════════════════════════
+     MOBILE STYLES  (≤ 700px)
+     ══════════════════════════════════════ */
+  @media (max-width: 700px) {
+
+    body { overflow: auto; }
+
+    /* Header */
+    header { padding: 10px 16px; }
+    header h1 { font-size: 1.05rem; }
+    .sidebar-toggle { display: block; }
+
+    /* Tabs: scrollable row */
+    .tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tab-btn { font-size: 0.62rem; padding: 10px 12px; letter-spacing: 0.04em; }
+
+    /* Content stacks vertically */
+    .content { height: auto; flex-direction: column; }
+    .tab-panel.active { flex-direction: column; }
+
+    /* Sidebar: hidden drawer, slides in from top */
+    .sidebar {
+      width: 100%; min-width: 0; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 16px;
+      display: none;       /* hidden by default on mobile */
+      gap: 16px;
+    }
+    .sidebar.open { display: flex; }
+
+    /* Plot area: full width, auto height */
+    .plot-area { padding: 12px 12px; gap: 6px; height: auto; overflow: visible; }
+    .plot-title { font-size: 0.82rem; }
+
+    /* Canvas: fixed heights on mobile so they're readable */
+    canvas { min-height: 220px; flex: none; height: 220px; }
+
+    /* 2×2 grid → single column on mobile */
+    .canvas-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(4, 220px);
+      height: auto; flex: none;
+    }
+    .canvas-cell { min-height: 0; }
+
+    /* Tab 3 two-canvas layout */
+    #tab2 .plot-area > div { flex: none; }
+    #tab2 .canvas-cell { height: 220px; }
+
+    /* Sliders: bigger touch target */
+    input[type=range] { height: 6px; }
+    input[type=range]::-webkit-slider-thumb { width: 20px; height: 20px; }
+
+    /* Toggles: larger */
+    .toggle { width: 44px; height: 24px; }
+    .slider-track::before { width: 18px; height: 18px; }
+    .toggle input:checked + .slider-track::before { transform: translateX(20px); }
+
+    /* n input */
+    .n-input-row input[type=number] { font-size: 1.1rem; width: 70px; }
+    .n-step-btn { width: 30px; height: 26px; }
+
+    /* State buttons: bigger */
+    .state-btn { font-size: 0.78rem; padding: 10px 14px; }
+
+    /* Playback buttons */
+    .t3-ctrl-btn { font-size: 0.78rem; padding: 10px 16px; }
+
+    /* Eq bar: hide on mobile (too cluttered) */
+    .eq-bar { display: none; }
+
+    /* Sidebar sections: tighter */
+    .sidebar-section h3 { font-size: 0.62rem; margin-bottom: 8px; }
+    .toggle-row { margin-bottom: 12px; font-size: 0.92rem; }
+    .control { margin-bottom: 12px; }
+    .control label { font-size: 0.88rem; }
+  }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Quantum <span>Harmonic Oscillator</span></h1>
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle controls">☰</button>
 </header>
 
 <div class="tabs">
@@ -1327,6 +1415,33 @@ function resizeTab3() {
 
 
 // ═══════════════════════════════════════════════════════════════════
+//  MOBILE SIDEBAR TOGGLE
+// ═══════════════════════════════════════════════════════════════════
+const sidebarToggle = document.getElementById('sidebarToggle');
+sidebarToggle.addEventListener('click', () => {
+  // find the sidebar of the active tab and toggle it
+  const activePanel = panels.find(p => p.classList.contains('active'));
+  if (!activePanel) return;
+  const sb = activePanel.querySelector('.sidebar');
+  if (!sb) return;
+  const isOpen = sb.classList.toggle('open');
+  sidebarToggle.textContent = isOpen ? '✕' : '☰';
+  // redraw after sidebar animates open/closed (canvas may have resized)
+  setTimeout(() => {
+    const i = panels.indexOf(activePanel);
+    if(i===0) resizeTab1();
+    if(i===1) resizeTab2();
+    if(i===2) resizeTab3();
+  }, 50);
+});
+
+// Close sidebar when switching tabs on mobile
+function closeMobileSidebar() {
+  document.querySelectorAll('.sidebar').forEach(sb => sb.classList.remove('open'));
+  sidebarToggle.textContent = '☰';
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════════
 const panels=[document.getElementById('tab0'),document.getElementById('tab1'),document.getElementById('tab2')];
@@ -1334,6 +1449,7 @@ const tbtns=document.querySelectorAll('.tab-btn');
 function switchTab(i){
   // pause animation if leaving tab3
   if(!panels[2].classList.contains('active') === false && i!==2) t3_pause();
+  closeMobileSidebar();
   tbtns.forEach((b,j)=>b.classList.toggle('active',j===i));
   panels.forEach((p,j)=>p.classList.toggle('active',j===i));
   if(i===0) resizeTab1();
