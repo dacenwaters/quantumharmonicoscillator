@@ -832,7 +832,7 @@ function updateInfo1() {
 
 function drawTab1() {
   const cv=document.getElementById('plot1'), ctx=cv.getContext('2d');
-  const W=cv.width, H=cv.height;
+  const W=cv.width/devicePixelRatio, H=cv.height/devicePixelRatio;
   ctx.clearRect(0,0,W,H);
   const E=(n1+0.5)*t1_omega, A=classAmp(E,t1_omega);
   const xR=Math.max(A*1.65,4.0);
@@ -991,7 +991,7 @@ function refreshUncertainty() {
 // ── Generic canvas plotter ──
 function plotCanvas(id, xs, reV, imV, pdV, mean, sigma, xLab, yLab, showRe, showIm, showPD, showStats, xClassLim, pClassLim) {
   const cv=document.getElementById(id); if(!cv)return;
-  const ctx=cv.getContext('2d'); const W=cv.width,H=cv.height;
+  const ctx=cv.getContext('2d'); const W=cv.width/devicePixelRatio, H=cv.height/devicePixelRatio;
   ctx.clearRect(0,0,W,H);
   const N=xs.length, xMin=xs[0], xMax=xs[N-1];
 
@@ -1223,7 +1223,7 @@ function t3_drawWF(re, im) {
   const cv = document.getElementById('cvs-t3-wf');
   if(!cv) return;
   const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
+  const W = cv.width/devicePixelRatio, H = cv.height/devicePixelRatio;
   ctx.clearRect(0,0,W,H);
 
   const xMin = t3_xs[0], xMax = t3_xs[T3_NX-1];
@@ -1302,7 +1302,7 @@ function t3_drawPD(pd) {
   const cv = document.getElementById('cvs-t3-pd');
   if(!cv) return;
   const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
+  const W = cv.width/devicePixelRatio, H = cv.height/devicePixelRatio;
   ctx.clearRect(0,0,W,H);
 
   const xMin = t3_xs[0], xMax = t3_xs[T3_NX-1];
@@ -1506,9 +1506,9 @@ window.addEventListener('load',()=>{
 
 window.addEventListener('resize', () => {
   const i = panels.findIndex(p => p.classList.contains('active'));
-  if(i===0) resizeTab1();
-  if(i===1) resizeTab2();
-  if(i===2) resizeTab3();
+  if(i===0) dResizeTab1();
+  if(i===1) dResizeTab2();
+  if(i===2) dResizeTab3();
 });
 </script>
 </body>
