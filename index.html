@@ -595,9 +595,33 @@
 
     <div class="sidebar-section">
       <h3>Initial State</h3>
-      <div class="info-box" style="font-size:0.82rem;line-height:1.6;">
-        <strong>Ψ(x,0) = (1/√2)(ψ₀ + ψ₁)</strong><br>
-        Equal superposition of ground and first excited state.
+      <div class="info-box" style="font-size:0.82rem;line-height:1.6;margin-bottom:10px;" id="t3-state-info">
+        <strong id="t3-state-label">Ψ(x,0) = (1/√2)(ψ₀ + ψ₁)</strong>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-bottom:5px;letter-spacing:0.08em;">STATE n₁</div>
+          <div class="n-input-row" style="gap:5px;">
+            <input type="number" id="t3-n1" value="0" min="0" max="9" step="1" style="width:52px;">
+            <div class="n-step-btns">
+              <button class="n-step-btn" id="t3-n1-up">▲</button>
+              <button class="n-step-btn" id="t3-n1-down">▼</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-bottom:5px;letter-spacing:0.08em;">STATE n₂</div>
+          <div class="n-input-row" style="gap:5px;">
+            <input type="number" id="t3-n2" value="1" min="0" max="9" step="1" style="width:52px;">
+            <div class="n-step-btns">
+              <button class="n-step-btn" id="t3-n2-up">▲</button>
+              <button class="n-step-btn" id="t3-n2-down">▼</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-top:8px;">
+        ΔE = <span id="t3-period-val" style="color:var(--accent4);">1.00</span>
       </div>
     </div>
 
@@ -615,8 +639,8 @@
       </div>
       <!-- playback speed -->
       <div class="control">
-        <label><span>Play Speed</span><span class="val" id="t3-speed-val">0.25×</span></label>
-        <input type="range" id="t3-speed" min="0.05" max="2" step="0.05" value="0.25">
+        <label><span>Play Speed</span><span class="val" id="t3-speed-val">1.0×</span></label>
+        <input type="range" id="t3-speed" min="0.05" max="2" step="0.05" value="1.0">
       </div>
     </div>
 
@@ -1152,17 +1176,19 @@ document.getElementById('t2-showClassical').addEventListener('change',function()
 
 // ═══════════════════════════════════════════════════════════════════
 //  TAB 3 — Time Evolution
-//  State: Ψ(x,t) = (1/√2)[ψ₀(x)e^{-iE₀t} + ψ₁(x)e^{-iE₁t}]
-//  ℏ=m=ω=1 → E₀=½, E₁=3/2
-//  |Ψ|² = ½(ψ₀²+ψ₁²) + ψ₀ψ₁·cos(t)   period τ=2π
-//  ⟨x⟩(t) = (1/√2)cos(t)   via ⟨0|x̂|1⟩=1/√2 (ladder ops)
-//  ⟨p⟩(t) = -(1/√2)sin(t)
+//  General state: Ψ(x,t) = (1/√2)[ψ_nA e^{-iE_nA·t} + ψ_nB e^{-iE_nB·t}]
+//  ℏ=m=ω=1 → Eₙ = n + ½
+//  |Ψ|² = ½(ψ_nA² + ψ_nB²) + ψ_nA·ψ_nB·cos((E_nA−E_nB)t)
+//  Beat period τ = 2π/|E_nA−E_nB| = 2π/|nA−nB|  (integer for eigenstates)
+//  ⟨x⟩(t) = ⟨nA|x̂|nB⟩·cos(ΔE·t)  [only adjacent n give nonzero via ladder ops]
+//  ⟨nA|x̂|nB⟩ = (1/√2)·√(max(nA,nB))  when |nA−nB|=1, else 0
 // ═══════════════════════════════════════════════════════════════════
-const T3_TAU = 2 * Math.PI;   // period in natural units
+const T3_TAU_BASE = 2 * Math.PI;
 
-let t3_t      = 0;             // current time
+let t3_nA = 0, t3_nB = 1;
+let t3_t      = 0;
 let t3_playing = false;
-let t3_speed   = 0.25;
+let t3_speed   = 1.0;
 let t3_lastTS  = null;
 let t3_animID  = null;
 let t3_showRe      = true;
@@ -1170,42 +1196,60 @@ let t3_showIm      = true;
 let t3_showXexp    = false;
 let t3_showTurning = false;
 
-// Classical turning points: mean energy ⟨E⟩ = (E₀+E₁)/2 = (½+3/2)/2 = 1
-// x_tp = ±√(2⟨E⟩/mω²) = ±√2  (ℏ=m=ω=1)
-// p_max = ±√(2⟨E⟩·m) = ±√2
-const T3_XTP = Math.sqrt(2);
-
-// Precompute ψ₀ and ψ₁ on a fixed grid (they don't change)
 const T3_NX   = 800;
-const T3_XMAX = 3.0;
+const T3_XMAX = 5.0;
 const t3_xs   = Array.from({length:T3_NX}, (_,i) => -T3_XMAX + 2*T3_XMAX*i/(T3_NX-1));
-const t3_psi0 = t3_xs.map(x => psiN(0, x));
-const t3_psi1 = t3_xs.map(x => psiN(1, x));
 
-// Ψ(x,t) = (1/√2)[ψ₀ e^{-it/2} + ψ₁ e^{-3it/2}]
-// Re[Ψ] = (1/√2)[ψ₀ cos(t/2) + ψ₁ cos(3t/2)]
-// Im[Ψ] = -(1/√2)[ψ₀ sin(t/2) + ψ₁ sin(3t/2)]
+// Cache for precomputed eigenfunctions — recompute only when n changes
+const t3_psiCache = {};
+function t3_getPsi(n) {
+  if (!t3_psiCache[n]) t3_psiCache[n] = t3_xs.map(x => psiN(n, x));
+  return t3_psiCache[n];
+}
+
+// Derived quantities from current nA, nB
+function t3_EA() { return t3_nA + 0.5; }
+function t3_EB() { return t3_nB + 0.5; }
+function t3_deltaE() { return Math.abs(t3_EA() - t3_EB()); }
+function t3_period() { return T3_TAU_BASE; }  // always 2π — students observe faster oscillation via larger ΔE
+function t3_xtp() { return Math.sqrt(t3_EA() + t3_EB()); }
+function t3_xexpAmp() {
+  if (Math.abs(t3_nA - t3_nB) !== 1) return 0;
+  return Math.sqrt(Math.max(t3_nA, t3_nB) / 2);
+}
+
+// Ψ(x,t) = (1/√2)[ψ_nA e^{-iEA·t} + ψ_nB e^{-iEB·t}]
 function t3_computeWF(t) {
-  const c0 = Math.cos(t/2),  s0 = Math.sin(t/2);
-  const c1 = Math.cos(3*t/2), s1 = Math.sin(3*t/2);
+  const psiA = t3_getPsi(t3_nA), psiB = t3_getPsi(t3_nB);
+  const EA = t3_EA(), EB = t3_EB();
+  const cA = Math.cos(EA*t), sA = Math.sin(EA*t);
+  const cB = Math.cos(EB*t), sB = Math.sin(EB*t);
   const re = [], im = [], pd = [];
   for (let i = 0; i < T3_NX; i++) {
-    const r = S2 * (t3_psi0[i]*c0 + t3_psi1[i]*c1);
-    const m = -S2 * (t3_psi0[i]*s0 + t3_psi1[i]*s1);
+    const r =  S2 * (psiA[i]*cA + psiB[i]*cB);
+    const m = -S2 * (psiA[i]*sA + psiB[i]*sB);
     re.push(r); im.push(m); pd.push(r*r + m*m);
   }
   return {re, im, pd};
 }
 
-// ⟨x⟩(t) = (1/√2)cos(t),  ⟨p⟩(t) = -(1/√2)sin(t)
-function t3_xexp(t) { return S2 * Math.cos(t); }
-function t3_pexp(t) { return -S2 * Math.sin(t); }
+// ⟨x⟩(t) = amp · cos(ΔE · t)  (only for adjacent levels)
+function t3_xexp(t) {
+  return t3_xexpAmp() * Math.cos(t3_deltaE() * t);
+}
+
+function t3_updateStateInfo() {
+  const nA = t3_nA, nB = t3_nB;
+  document.getElementById('t3-state-label').textContent =
+    `Ψ(x,0) = (1/√2)(ψ${nA} + ψ${nB})`;
+  document.getElementById('t3-period-val').textContent = t3_deltaE().toFixed(2);
+}
 
 function t3_updateTimeDisplay() {
-  const frac = t3_t / T3_TAU;
+  const frac = t3_t / T3_TAU_BASE;
   document.getElementById('t3-tval').textContent  = t3_t.toFixed(3);
   document.getElementById('t3-tfrac').textContent = frac.toFixed(3) + ' τ';
-  document.getElementById('t3-scrub').value       = (frac % 1 + 1) % 1;
+  document.getElementById('t3-scrub').value       = frac % 1;
   document.getElementById('t3-scrub-val').textContent = frac.toFixed(3) + ' τ';
   document.getElementById('t3-plot-title').textContent =
     `Ψ(x, t = ${t3_t.toFixed(3)})`;
@@ -1277,17 +1321,18 @@ function t3_drawWF(re, im) {
     ctx.fillText('⟨x⟩='+xmean.toFixed(3), Math.max(ml+26,Math.min(ml+pw-26,px)), mt+11);
   }
 
-  // classical turning points ±√2
+  // classical turning points
   if(t3_showTurning){
+    const xtp = t3_xtp();
     ctx.save();ctx.strokeStyle='#3fb950';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.globalAlpha=0.85;
-    [-T3_XTP, T3_XTP].forEach(xtp=>{
-      const px=tX(xtp);
-      ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();
+    [-xtp, xtp].forEach(v=>{
+      const px=tX(v);
+      if(px>=ml&&px<=ml+pw){ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();}
     });
     ctx.restore();
     ctx.fillStyle='#3fb950';ctx.font='9px Courier New,monospace';ctx.textAlign='center';ctx.globalAlpha=0.85;
-    ctx.fillText('-√2',tX(-T3_XTP),mt+ph-6);
-    ctx.fillText('+√2',tX(T3_XTP),mt+ph-6);
+    if(tX(-xtp)>=ml&&tX(-xtp)<=ml+pw) ctx.fillText('-'+xtp.toFixed(2),tX(-xtp),mt+ph-6);
+    if(tX( xtp)>=ml&&tX( xtp)<=ml+pw) ctx.fillText('+'+xtp.toFixed(2),tX( xtp),mt+ph-6);
   }
 
   // legend
@@ -1354,17 +1399,18 @@ function t3_drawPD(pd) {
     ctx.fillText('⟨x⟩='+xmean.toFixed(3), Math.max(ml+26,Math.min(ml+pw-26,px)), mt+11);
   }
 
-  // classical turning points ±√2
+  // classical turning points
   if(t3_showTurning){
+    const xtp = t3_xtp();
     ctx.save();ctx.strokeStyle='#3fb950';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.globalAlpha=0.85;
-    [-T3_XTP, T3_XTP].forEach(xtp=>{
-      const px=tX(xtp);
-      ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();
+    [-xtp, xtp].forEach(v=>{
+      const px=tX(v);
+      if(px>=ml&&px<=ml+pw){ctx.beginPath();ctx.moveTo(px,mt);ctx.lineTo(px,mt+ph);ctx.stroke();}
     });
     ctx.restore();
     ctx.fillStyle='#3fb950';ctx.font='9px Courier New,monospace';ctx.textAlign='center';ctx.globalAlpha=0.85;
-    ctx.fillText('-√2',tX(-T3_XTP),mt+ph-6);
-    ctx.fillText('+√2',tX(T3_XTP),mt+ph-6);
+    if(tX(-xtp)>=ml&&tX(-xtp)<=ml+pw) ctx.fillText('-'+xtp.toFixed(2),tX(-xtp),mt+ph-6);
+    if(tX( xtp)>=ml&&tX( xtp)<=ml+pw) ctx.fillText('+'+xtp.toFixed(2),tX( xtp),mt+ph-6);
   }
 }
 
@@ -1372,8 +1418,9 @@ function t3_drawPD(pd) {
 function t3_tick(ts) {
   if(!t3_playing) return;
   if(t3_lastTS !== null) {
-    const dt = (ts - t3_lastTS) / 1000;   // seconds of real time
-    t3_t += dt * t3_speed * (2*Math.PI);  // advance by speed × ω (ω=1 → one τ per real second at speed=1)
+    const dt = (ts - t3_lastTS) / 1000;
+    // 1× speed = one τ (2π) per 4 real seconds; students observe ΔE controls oscillation rate
+    t3_t += dt * t3_speed * T3_TAU_BASE / 4;
   }
   t3_lastTS = ts;
   t3_drawFrame();
@@ -1409,7 +1456,7 @@ document.getElementById('t3-reset').addEventListener('click', t3_reset);
 document.getElementById('t3-scrub').addEventListener('input', function() {
   const wasPlaying = t3_playing;
   if(wasPlaying) t3_pause();
-  t3_t = parseFloat(this.value) * T3_TAU;
+  t3_t = parseFloat(this.value) * T3_TAU_BASE;
   t3_drawFrame();
   if(wasPlaying) t3_play();
 });
@@ -1423,6 +1470,28 @@ document.getElementById('t3-showRe').addEventListener('change',function(){t3_sho
 document.getElementById('t3-showIm').addEventListener('change',function(){t3_showIm=this.checked;t3_drawFrame();});
 document.getElementById('t3-showXexp').addEventListener('change',function(){t3_showXexp=this.checked;t3_drawFrame();});
 document.getElementById('t3-showTurning').addEventListener('change',function(){t3_showTurning=this.checked;t3_drawFrame();});
+
+function t3_setStates(nA, nB) {
+  // allow equal states (degenerate case — no oscillation, just stationary)
+  t3_nA = Math.max(0, Math.min(9, nA));
+  t3_nB = Math.max(0, Math.min(9, nB));
+  document.getElementById('t3-n1').value = t3_nA;
+  document.getElementById('t3-n2').value = t3_nB;
+  t3_reset();
+  t3_updateStateInfo();
+}
+
+function t3_readN(id) {
+  const v = parseInt(document.getElementById(id).value, 10);
+  return isNaN(v) ? 0 : Math.max(0, Math.min(9, v));
+}
+
+document.getElementById('t3-n1').addEventListener('change', ()=>t3_setStates(t3_readN('t3-n1'), t3_nB));
+document.getElementById('t3-n2').addEventListener('change', ()=>t3_setStates(t3_nA, t3_readN('t3-n2')));
+document.getElementById('t3-n1-up').addEventListener('click',  ()=>t3_setStates(t3_nA+1, t3_nB));
+document.getElementById('t3-n1-down').addEventListener('click', ()=>t3_setStates(t3_nA-1, t3_nB));
+document.getElementById('t3-n2-up').addEventListener('click',  ()=>t3_setStates(t3_nA, t3_nB+1));
+document.getElementById('t3-n2-down').addEventListener('click', ()=>t3_setStates(t3_nA, t3_nB-1));
 
 function resizeTab3() {
   let any = false;
@@ -1497,6 +1566,7 @@ const ro3=new ResizeObserver(()=>{ if(panels[2].classList.contains('active')) dR
 window.addEventListener('load',()=>{
   updateInfo1();
   setState('n0');
+  t3_updateStateInfo();
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       resizeTab1();
